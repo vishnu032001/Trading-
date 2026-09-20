@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";\nimport type { MouseEvent } from "react";
 import {
   AreaSeries, CandlestickSeries, ColorType, createChart, HistogramSeries, LineSeries,
   type IChartApi, type ISeriesApi, type Time,
 } from "lightweight-charts";
-import { Crosshair, Minus, MousePointer2, Pencil, Plus } from "lucide-react";
+import { Crosshair, Minus, MousePointer2, Pencil } from "lucide-react";
 import { useTradingStore } from "@/store/useTradingStore";
 import type { Drawing, IndicatorConfig, OHLCV } from "@/types/trading";
 
@@ -97,7 +97,7 @@ export function TradingChart() {
     chart.timeScale().fitContent();
   }, [normalized, candles, chartType, indicators]);
 
-  function handleChartClick(e: React.MouseEvent<HTMLDivElement>) {
+  function handleChartClick(e: MouseEvent<HTMLDivElement>) {
     if (tool === "cursor" || !containerRef.current || !chartRef.current || !priceRef.current) return;
     const rect = containerRef.current.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
     const time = chartRef.current.timeScale().coordinateToTime(x), price = priceRef.current.priceToCoordinate ? chartRef.current.panes()[0].getSeries().length ? chartRef.current.priceScale("right").coordinateToPrice(y) : null : null;
