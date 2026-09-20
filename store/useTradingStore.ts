@@ -69,8 +69,8 @@ interface TradingStore {
   loading: boolean;
   error?: string;
 
-  setActiveSymbol: (symbol: string) => void;
-  setTimeframe: (timeframe: Timeframe) => void;
+  setActiveSymbol: (symbol: string) => Promise<void>;
+  setTimeframe: (timeframe: Timeframe) => Promise<void>;
   setChartType: (type: ChartType) => void;
   setCandles: (candles: OHLCV[]) => void;
   setLoading: (loading: boolean) => void;
@@ -130,13 +130,31 @@ export const useTradingStore = create<TradingStore>((set) => ({
   copilotMessages: [],
   loading: false,
 
-  setActiveSymbol: (symbol) =>
-    set({
-      activeSymbol: symbol.toUpperCase(),
-      candles: seedCandles(symbol.toUpperCase()),
-    }),
+  setActiveSymbol: async (symbol) => {
+    const normalized = symbol.toUpperCase();
+    set({ activeSymbol: normalized, loading: true, error: undefined });
+    try {
+      const response = await fetch(`/api/market/history?symbol=${encodeURIComponent(normalized)}&timeframe=${useTradingStore.getState().timeframe}`);
+      if (!response.ok) throw new Error("Market history request failed");
+      const data = await response.json();
+      set({ candles: data.candles, loading: false });
+    } catch {
+      set({ candles: seedCandles(normalized), loading: false, error: "Using local mock market data" });
+    }
+  },
 
-  setTimeframe: (timeframe) => set({ timeframe }),
+  setTimeframe: async (timeframe) => {
+    const symbol = useTradingStore.getState().activeSymbol;
+    set({ timeframe, loading: true, error: undefined });
+    try {
+      const response = await fetch(`/api/market/history?symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}`);
+      if (!response.ok) throw new Error("Market history request failed");
+      const data = await response.json();
+      set({ candles: data.candles, loading: false });
+    } catch {
+      set({ candles: seedCandles(symbol), loading: false, error: "Using local mock market data" });
+    }
+  },
 
   setChartType: (chartType) => set({ chartType }),
 
