@@ -7,6 +7,7 @@ import { useTradingStore } from "@/store/useTradingStore";
 import { TradingChart } from "@/components/chart/TradingChart";
 import { WatchlistPanel } from "@/components/watchlist/WatchlistPanel";
 import { IndicatorMenu } from "@/components/indicators/IndicatorMenu";
+import { ChartCopilot } from "@/components/command/ChartCopilot";
 
 const timeframes: Timeframe[] = ["1m", "5m", "1h", "1D", "1W"];
 
@@ -27,7 +28,7 @@ export default function HomePage() {
           <select value={chartType} onChange={e => setChartType(e.target.value as ChartType)} className="ml-2 rounded border border-[#263143] bg-[#101722] px-2 py-1.5 text-xs">
             <option value="candlestick">Candles</option><option value="line">Line</option><option value="area">Area</option>
           </select>
-          <IndicatorMenu/>
+          <IndicatorMenu/><ChartCopilot/>
         </div>
         <div className="flex items-center gap-1"><button className="p-2 text-gray-400"><Search size={17}/></button><button className="p-2 text-gray-400"><Bell size={17}/></button><button className="p-2 text-gray-400"><Settings size={17}/></button></div>
       </header>
