@@ -220,8 +220,62 @@ export const useTradingStore = create<TradingStore>((set) => ({
         updatedAt: now,
       };
 
+      const lastPrice = state.candles[state.candles.length - 1]?.close ?? 0;
+      const fillPrice = order.type === "market" ? lastPrice : order.limitPrice ?? lastPrice;
+      const shouldFill = order.type === "market";
+      if (!shouldFill) {
+        return { orders: [{ ...nextOrder, status: "open" }, ...state.orders] };
+      }
+
+      const signedQty = order.side === "buy" ? order.quantity : -order.quantity;
+      const existing = state.positions.find(p => p.symbol === order.symbol);
+      const nextQty = (existing?.quantity ?? 0) + signedQty;
+      const trade: Trade = {
+        id: makeId("trade"),
+        symbol: order.symbol,
+        side: order.side,
+        quantity: order.quantity,
+        price: fillPrice,
+        timestamp: now,
+      };
+      const nextOrderFilled: Order = {
+        ...nextOrder,
+        status: "filled",
+        filledQuantity: order.quantity,
+        averageFillPrice: fillPrice,
+        updatedAt: now,
+      };
+      const cashDelta = order.side === "buy" ? -order.quantity * fillPrice : order.quantity * fillPrice;
+      const nextPositions = state.positions.filter(p => p.symbol !== order.symbol);
+      if (nextQty > 0) {
+        const oldQty = existing?.quantity ?? 0;
+        const avg = oldQty > 0
+          ? ((existing?.averageEntryPrice ?? fillPrice) * oldQty + fillPrice * order.quantity) / nextQty
+          : fillPrice;
+        nextPositions.push({
+          symbol: order.symbol,
+          quantity: nextQty,
+          averageEntryPrice: avg,
+          currentPrice: fillPrice,
+          marketValue: nextQty * fillPrice,
+          unrealizedPnL: 0,
+          unrealizedPnLPercent: 0,
+          side: "long",
+        });
+      }
+
+      const cash = state.account.cash + cashDelta;
       return {
-        orders: [nextOrder, ...state.orders],
+        orders: [nextOrderFilled, ...state.orders],
+        trades: [trade, ...state.trades],
+        positions: nextPositions,
+        account: {
+          ...state.account,
+          cash,
+          buyingPower: cash,
+          portfolioValue: cash + nextPositions.reduce((sum, p) => sum + p.marketValue, 0),
+          equity: cash + nextPositions.reduce((sum, p) => sum + p.marketValue, 0),
+        },
       };
     }),
 
