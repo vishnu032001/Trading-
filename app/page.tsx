@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, Bell, ChevronDown, Command, Menu, Search, Settings, TrendingUp, Wallet } from "lucide-react";
 import type { ChartType, OrderSide, OrderType, Timeframe } from "@/types/trading";
 import { useTradingStore } from "@/store/useTradingStore";
@@ -12,14 +12,14 @@ import { ChartCopilot } from "@/components/command/ChartCopilot";
 const timeframes: Timeframe[] = ["1m", "5m", "1h", "1D", "1W"];
 
 export default function HomePage() {
-  const { activeSymbol, timeframe, chartType, account, orders, setTimeframe, setChartType, submitOrder } = useTradingStore();
+  const { activeSymbol, timeframe, chartType, account, orders, setTimeframe, setChartType, setActiveSymbol, updateQuote, submitOrder } = useTradingStore();
   const [logOpen, setLogOpen] = useState(true);
   const [side, setSide] = useState<OrderSide>("buy");
   const [orderType, setOrderType] = useState<OrderType>("market");
   const [quantity, setQuantity] = useState(10);
   const [limitPrice, setLimitPrice] = useState("");
 
-  const placeOrder = () => {
+  useEffect(() => {\n    let cancelled = false;\n    const refresh = async () => {\n      try {\n        const response = await fetch(`/api/market/quote?symbol=${encodeURIComponent(activeSymbol)}`);\n        if (!response.ok) return;\n        const data = await response.json();\n        if (!cancelled) updateQuote(data.quote);\n      } catch {}\n    };\n    refresh();\n    const timer = window.setInterval(refresh, 5000);\n    return () => { cancelled = true; window.clearInterval(timer); };\n  }, [activeSymbol, updateQuote]);\n\n  const placeOrder = () => {
     const qty = Math.max(1, Number(quantity) || 0);
     submitOrder({ symbol: activeSymbol, side, type: orderType, quantity: qty, limitPrice: orderType === "limit" ? Number(limitPrice) : undefined, status: orderType === "market" ? "pending" : "open", filledQuantity: 0 });
   };
@@ -28,7 +28,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#080b12] text-gray-100">
       <header className="flex h-14 items-center justify-between border-b border-[#202838] bg-[#0c111b] px-3">
         <div className="flex items-center gap-3">
-          <button className="rounded p-2 md:hidden" aria-label="Open navigation"><Menu size={18}/></button>
+          <button onClick={() => setActiveSymbol(activeSymbol)} className="rounded p-2 md:hidden" aria-label="Refresh market"><Menu size={18}/></button>
           <div className="flex items-center gap-2 font-semibold"><TrendingUp size={20} className="text-emerald-400"/>WebTradingView</div>
           <div className="hidden border-l border-[#263143] pl-3 sm:block"><b>{activeSymbol}</b><span className="ml-2 text-xs text-gray-500">NASDAQ</span></div>
         </div>
